@@ -170,38 +170,38 @@ python manage.py seed
 ## 🖥️ 화면 예시
 
 ### 1. 자료 검증 (`/review/`)
-**자료 제출**
+**1) 자료 제출**
 <img width="1883" height="936" alt="image" src="https://github.com/user-attachments/assets/2e38f20e-d47e-4460-a69d-8ee81cd053ed" />
 
-**AI 리뷰**
+**2) AI 리뷰**
 <img width="1883" height="915" alt="image" src="https://github.com/user-attachments/assets/858b47d6-5551-4594-8bce-d1efbed42481" />
 
-**팀원 리뷰**
+**3) 팀원 리뷰**
 <img width="1884" height="937" alt="image" src="https://github.com/user-attachments/assets/f40389b9-58e5-4dd1-84a5-ccf8129ba1f6" />
 
-**내 리뷰**
+**4) 내 리뷰**
 <img width="1883" height="937" alt="image" src="https://github.com/user-attachments/assets/704f4a96-503e-42ee-b0f7-6cf659f36c6e" />
 
 ### 2. 자료 보관함 (`/archive/`)
 <img width="1877" height="931" alt="image" src="https://github.com/user-attachments/assets/e7a0e6d5-ecef-4f0c-832b-d13c6b0c399e" />
 
 ### 3. 프로젝트 관리 (`/teams/`)
-**프로젝트 개요**
+**1) 프로젝트 개요**
 <img width="1894" height="938" alt="image" src="https://github.com/user-attachments/assets/50baa7e3-0222-4fac-bc6d-4c17d4fa03f9" />
 
-**팀 관리**
+**2) 팀 관리**
 <img width="1887" height="936" alt="image" src="https://github.com/user-attachments/assets/7d40d6fc-0cf8-473e-b9ee-f74a2c7be9ae" />
 
-**일정 관리**
+**3) 일정 관리**
 <img width="1876" height="914" alt="image" src="https://github.com/user-attachments/assets/fc68dee0-f3b7-44d1-8ba9-f1b42d7eeebc" />
 
 ### 4. 내보내기 (`/export/`)
 <img width="1892" height="937" alt="image" src="https://github.com/user-attachments/assets/c89a8447-9bf5-44b2-96bd-ffaec12eda47" />
 
-### 기타)
-**로그인**
+### 5. 기타
+**1) 로그인**
 <img width="1897" height="933" alt="image" src="https://github.com/user-attachments/assets/4d19f30c-7d11-4a31-973b-fff9e34f4e21" />
 
-**모든 프로젝트 관리**
+**2) 모든 프로젝트 관리**
 <img width="1890" height="933" alt="image" src="https://github.com/user-attachments/assets/5e4910a9-d322-44d3-a1ef-8ed33535a8a4" />
 
