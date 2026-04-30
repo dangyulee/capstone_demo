@@ -52,6 +52,24 @@ python manage.py runserver
 # → http://127.0.0.1:8000
 ```
 
+### 6. 더미 데이터 생성 (선택)
+
+```bash
+python manage.py seed
+```
+
+기존 데이터를 초기화하고 테스트용 더미 데이터를 생성합니다.
+
+| 항목 | 내용 |
+|---|---|
+| 프로젝트 | AI 강의 추천 팀 (초대코드: `247813`) |
+| 계정 | `minjun` / `seoyeon` / `jiho` / `yuna` (비밀번호: `test1234`) |
+| 역할 | PM / 프론트 / 백엔드 / AI |
+| 자료 | 4건 (pending 2, verified 1, rejected 1) |
+| AI 리뷰 | 자료별 2~3개 (문제점·제안 포함) |
+| 팀원 리뷰 | 드래그 리뷰 항목 + 승인/보류/거절 투표 혼합 |
+| 일정 | 6건 (킥오프 ~ 최종 발표, 과거·미래 분산) |
+
 ---
 
 ## 디렉토리 구조
@@ -66,7 +84,10 @@ python manage.py runserver
 │   ├── views.py             # 뷰 함수
 │   ├── urls.py
 │   ├── forms.py
-│   └── admin.py
+│   ├── admin.py
+│   └── management/
+│       └── commands/
+│           └── seed.py      # 더미 데이터 생성 커맨드
 ├── templates/
 │   ├── base.html                          # 공통 레이아웃 (헤더 + 메인 탭)
 │   ├── registration/                      # 로그인 / 회원가입
