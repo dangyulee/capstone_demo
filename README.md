@@ -117,7 +117,7 @@ python manage.py seed
 |---|---|
 | `/accounts/signup/` | 회원가입 |
 | `/accounts/login/` | 로그인 |
-| `/teams/` | 프로젝트 목록·생성·입장 |
+| `/projects/` | 모든 프로젝트 목록·생성·입장 |
 | `/review/` | 자료 검증 |
 | `/archive/` | 자료 보관함 |
 | `/export/` | 내보내기 |
@@ -129,7 +129,7 @@ python manage.py seed
 
 ## 주요 기능
 
-### 프로젝트 목록 (`/teams/`)
+### 모든 프로젝트 목록 (`/teams/`)
 - 프로젝트 생성 및 6자리 초대코드 자동 발급
 - 초대코드로 기존 프로젝트 참여
 - 내가 속한 프로젝트 목록 확인 및 삭제
@@ -203,5 +203,5 @@ python manage.py seed
 <img width="1897" height="933" alt="image" src="https://github.com/user-attachments/assets/4d19f30c-7d11-4a31-973b-fff9e34f4e21" />
 
 **모든 프로젝트 관리**
-<img width="1895" height="941" alt="image" src="https://github.com/user-attachments/assets/45b107f6-7a33-4682-a2a3-ce3aa628fff9" />
+<img width="1890" height="933" alt="image" src="https://github.com/user-attachments/assets/5e4910a9-d322-44d3-a1ef-8ed33535a8a4" />
 
