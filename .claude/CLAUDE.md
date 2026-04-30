@@ -25,9 +25,9 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 ## 시스템 플로우
 
 ```
-[Block 1] 회원가입 → 로그인
-              ├─ 팀 생성 → 초대코드 발급 → 팀원 초대
-              └─ 팀 참여 → 초대코드 입력
+[Block 1] 회원가입 → 로그인 → 프로젝트 목록
+              ├─ 프로젝트 생성 → 초대코드 발급 → 팀원 초대
+              └─ 프로젝트 참여 → 초대코드 입력
 
 [Block 2] 자료 제출 → AI 검증 → 팀원 리뷰
               ├─ 드래그 리뷰 작성 → 승인/보류/거절 투표
@@ -40,15 +40,24 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 
 ---
 
+## 리다이렉트 규칙
+
+- `/` → 로그인 O: `/teams/` / 로그인 X: `/accounts/login/`
+- `/accounts/login/` → 이미 로그인 O: `/teams/` (redirect_authenticated_user=True)
+- 로그인 완료 후 → `/teams/`
+- 회원가입 완료 후 → `/teams/`
+
+---
+
 ## 화면 레이아웃
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  팀이름 ∨                            사용자명 ∨       │  ← 최상단 헤더
+│  프로젝트명 ∨                          사용자명 ∨      │  ← 최상단 헤더
 ├──────────────────────────────────────────────────────┤
 │  자료 검증  자료 보관함  팀 관리  내보내기              │  ← 메인 탭 (4개, 좌측 정렬)
 ├──────────────────────────────────────────────────────┤
-│  (서브탭: 주제설정 / 역할분담설정 / 스케줄설정)       │  ← 팀 관리 탭만 (가운데 정렬)
+│  (서브탭: 프로젝트 개요 / 역할 분담 / 일정 관리)      │  ← 팀 관리 탭만 (가운데 정렬)
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -58,6 +67,7 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 
 | 순서 | 탭 | URL | 상태 |
 |---|---|---|---|
+| 0 | 프로젝트 목록 | `/teams/` | 구현됨 (메인 탭 외부) |
 | 1 | 자료 검증 | `/review/` | 구현됨 |
 | 2 | 자료 보관함 | `/archive/` | 구현됨 |
 | 3 | 팀 관리 | `/settings/topic/` | 구현됨 |
@@ -67,9 +77,9 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 
 | 서브탭 | URL | 기능 |
 |---|---|---|
-| 주제 설정 | `/settings/topic/` | 주제·상세설명 인라인 수정, 참고자료(PDF) 업로드/삭제 |
-| 역할 분담 설정 | `/settings/role/` | 팀원 추가·삭제·역할 변경 |
-| 스케줄 설정 | `/settings/schedule/` | 월별 달력, 일정 추가/삭제 |
+| 프로젝트 개요 | `/settings/topic/` | 프로젝트 이름·주제·상세설명 인라인 수정, 참고자료(PDF) 업로드/삭제 |
+| 역할 분담 | `/settings/role/` | 팀원 역할 변경 |
+| 일정 관리 | `/settings/schedule/` | 월별 달력, 일정 추가/삭제 |
 
 ---
 
@@ -131,7 +141,7 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 │       ├── review.html
 │       ├── archive.html
 │       ├── export.html
-│       ├── team_list.html
+│       ├── project_list.html
 │       ├── project_settings_topic.html
 │       ├── project_settings_role.html
 │       └── project_settings_schedule.html
@@ -152,15 +162,17 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 
 | 모델 | 주요 필드 |
 |---|---|
-| `Team` | name, join_code(6자리), members(M2M→User) |
-| `Project` | team(FK), title, description |
+| `Project` | name, join_code(6자리), members(M2M→User), title, description |
 | `ProjectFile` | project(FK), file, content, topic, status(pending/verified/rejected), uploaded_by |
 | `ProjectReference` | project(FK), file(PDF), original_name — 팀 관리 참고자료 전용 |
 | `FileReviewItem` | project_file(FK), highlighted_text, problem, suggestion, order — AI 리뷰 |
 | `TeamReviewItem` | project_file(FK), reviewer(FK), highlighted_text, problem, suggestion — 팀원 드래그 리뷰 |
 | `TeamReview` | project_file(FK), reviewer(FK), vote(approve/reject/hold) — 최종 투표 |
-| `TeamMember` | project(FK), name, role, order |
+| `TeamMember` | project(FK), user(FK), name, role, order — related_name: members_info |
 | `ScheduleEvent` | project(FK), title, date |
+
+> `Project.members` (M2M) ↔ User.projects (related_name)  
+> `TeamMember` (역할 정보) ↔ project.members_info (related_name)
 
 ---
 
@@ -171,11 +183,11 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 | `login` | `/accounts/login/` | 로그인 |
 | `logout` | `/accounts/logout/` | 로그아웃 (POST) |
 | `signup` | `/accounts/signup/` | 회원가입 |
+| `project_list` | `/teams/` | 프로젝트 목록·생성·삭제·입장 |
 | `review` | `/review/` | 자료 검증 |
 | `archive` | `/archive/` | 자료 보관함 |
 | `export` | `/export/` | 내보내기 |
-| `team_list` | `/teams/` | 팀 목록·생성·삭제 |
-| `project_settings_topic` | `/settings/topic/` | 주제 설정 |
+| `project_settings_topic` | `/settings/topic/` | 프로젝트 개요 설정 |
 | `project_settings_role` | `/settings/role/` | 역할 분담 |
 | `project_settings_schedule` | `/settings/schedule/` | 스케줄 |
 | `delete_file` | `/settings/file/<id>/delete/` | 참고자료 삭제 |
@@ -187,8 +199,8 @@ python manage.py runserver              # 개발 서버 → http://127.0.0.1:800
 
 - **인증** — Django 기본 auth (회원가입/로그인/로그아웃)
 - **환경변수** — python-dotenv, `.env` 파일 (gitignore)
-- **팀-프로젝트 연결** — 유저의 첫 번째 팀 → 해당 팀 프로젝트
-- **팀 없을 때** — id=1 임시 프로젝트 fallback
+- **프로젝트 연결** — 유저의 첫 번째 프로젝트 (`user.projects.first()`)
+- **프로젝트 없을 때** — id=1 임시 프로젝트 fallback (목록에는 미노출)
 - **파일 업로드** — PDF만 허용 (자료검증, 팀관리 참고자료 모두)
 - **DB** — SQLite (`db.sqlite3`, gitignore)
 - **미디어** — `MEDIA_ROOT = media/` (gitignore)

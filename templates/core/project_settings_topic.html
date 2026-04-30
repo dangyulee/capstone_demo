@@ -7,26 +7,26 @@
   <!-- 서브 탭 -->
   <div class="sub-nav">
     <a href="{% url 'project_settings_topic' %}" class="sub-tab {% if sub_tab == 'topic' %}active{% endif %}">프로젝트 개요</a>
-    <a href="{% url 'project_settings_role' %}" class="sub-tab {% if sub_tab == 'role' %}active{% endif %}">역할 분담</a>
+    <a href="{% url 'project_settings_role' %}" class="sub-tab {% if sub_tab == 'role' %}active{% endif %}">팀 관리</a>
     <a href="{% url 'project_settings_schedule' %}" class="sub-tab {% if sub_tab == 'schedule' %}active{% endif %}">일정 관리</a>
   </div>
 
   <div class="settings-body">
-    <!-- 팀 이름 카드 -->
+    <!-- 프로젝트 이름 카드 -->
     <div class="card" id="teamname-card">
       <div class="card-header">
-        <h3 class="card-title">팀 이름</h3>
+        <h3 class="card-title">프로젝트 이름</h3>
         <button class="btn-text" onclick="toggleEdit('teamname')">수정</button>
       </div>
       <div id="teamname-view">
-        <p class="card-value">{{ current_team.name|default:"(팀 이름 없음)" }}</p>
+        <p class="card-value">{{ current_project.name|default:"(이름 없음)" }}</p>
       </div>
       <div id="teamname-edit" class="hidden">
         <form method="post">
           {% csrf_token %}
-          <input type="hidden" name="action" value="save_team_name">
-          <input type="text" name="team_name" value="{{ current_team.name }}"
-                 class="form-input" placeholder="팀 이름을 입력하세요">
+          <input type="hidden" name="action" value="save_project_name">
+          <input type="text" name="project_name" value="{{ current_project.name }}"
+                 class="form-input" placeholder="프로젝트 이름을 입력하세요">
           <div class="form-actions">
             <button type="button" class="btn-secondary" onclick="toggleEdit('teamname')">취소</button>
             <button type="submit" class="btn-primary">저장</button>

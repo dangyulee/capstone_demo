@@ -113,7 +113,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/settings/topic/"
+LOGIN_REDIRECT_URL = "/teams/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

@@ -14,28 +14,28 @@
     <div class="top-header">
       <div class="top-header-left">
         <div class="project-menu" id="projectMenuBtn">
-          <span class="project-menu-label">{% if current_team %}{{ current_team.name }}{% else %}팀 없음{% endif %}</span>
+          <span class="project-menu-label">{% if current_project %}{{ current_project.name }}{% else %}프로젝트 없음{% endif %}</span>
           <span class="dropdown-arrow">&#8964;</span>
         </div>
         <div class="project-dropdown-menu hidden" id="projectDropdown">
 
           <!-- 속한 팀 목록 -->
-          <div class="dropdown-section-label">내 팀</div>
-          {% if user_teams %}
-            {% for team in user_teams %}
+          <div class="dropdown-section-label">내 프로젝트</div>
+          {% if user_projects %}
+            {% for proj in user_projects %}
             <a href="{% url 'review' %}" class="dropdown-item dropdown-team-item">
-              <span class="team-dot"></span>{{ team.name }}
+              <span class="team-dot"></span>{{ proj.name }}
             </a>
             {% endfor %}
           {% else %}
-            <div class="dropdown-empty">속한 팀이 없습니다</div>
+            <div class="dropdown-empty">속한 프로젝트가 없습니다</div>
           {% endif %}
 
           <div class="dropdown-divider"></div>
 
-          <!-- 팀 관리 -->
-          <a href="{% url 'team_list' %}" class="dropdown-item dropdown-action">
-            <span>&#9881; 팀 관리</span>
+          <!-- 프로젝트 관리 -->
+          <a href="{% url 'project_list' %}" class="dropdown-item dropdown-action">
+            <span>&#9881; 프로젝트 관리</span>
           </a>
 
           <!-- 초대 코드 입력 -->
@@ -43,9 +43,9 @@
             <span>&#128279; 초대 코드로 입장</span>
           </div>
           <div class="dropdown-panel hidden" id="joinPanel">
-            <form method="post" action="{% url 'team_list' %}">
+            <form method="post" action="{% url 'project_list' %}">
               {% csrf_token %}
-              <input type="hidden" name="action" value="join_team">
+              <input type="hidden" name="action" value="join_project">
               <input type="text" name="join_code" class="form-input dropdown-input"
                      placeholder="6자리 코드" maxlength="6" pattern="[0-9]{6}" required>
               <button type="submit" class="btn-primary btn-dropdown">입장</button>
@@ -76,7 +76,7 @@
         <div class="nav-tabs">
           <a href="{% url 'review' %}" class="nav-tab {% if tab == 'review' %}active{% endif %}">자료 검증</a>
           <a href="{% url 'archive' %}" class="nav-tab {% if tab == 'archive' %}active{% endif %}">자료 보관함</a>
-          <a href="{% url 'project_settings_topic' %}" class="nav-tab {% if tab == 'settings' %}active{% endif %}">팀 관리</a>
+          <a href="{% url 'project_settings_topic' %}" class="nav-tab {% if tab == 'settings' %}active{% endif %}">프로젝트 관리</a>
           <a href="{% url 'export' %}" class="nav-tab {% if tab == 'export' %}active{% endif %}">내보내기</a>
         </div>
       </div>

@@ -3,39 +3,28 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
-class Team(models.Model):
-    name = models.CharField(max_length=100)
-    join_code = models.CharField(max_length=6, unique=True)
-    members = models.ManyToManyField(User, related_name='teams', blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-    @staticmethod
-    def generate_code():
-        while True:
-            code = str(random.randint(100000, 999999))
-            if not Team.objects.filter(join_code=code).exists():
-                return code
-
-    class Meta:
-        verbose_name = '팀'
-        ordering = ['-created_at']
-
-
 class Project(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name='projects')
+    name = models.CharField(max_length=100, default='')
+    join_code = models.CharField(max_length=6, unique=True, default='')
+    members = models.ManyToManyField(User, related_name='projects', blank=True)
     title = models.CharField(max_length=200, default='')
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.title
+        return self.name or self.title
+
+    @staticmethod
+    def generate_code():
+        while True:
+            code = str(random.randint(100000, 999999))
+            if not Project.objects.filter(join_code=code).exists():
+                return code
 
     class Meta:
         verbose_name = '프로젝트'
+        ordering = ['-created_at']
 
 
 class ProjectFile(models.Model):
@@ -45,7 +34,7 @@ class ProjectFile(models.Model):
         ('rejected', '거절됨'),
     ]
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='files')
-    file = models.FileField(upload_to='project_files/')
+    file = models.FileField(upload_to='project_files/', blank=True)
     original_name = models.CharField(max_length=255)
     file_size = models.PositiveIntegerField(default=0)
     content = models.TextField(blank=True, verbose_name='검증 내용 (텍스트)')
@@ -67,14 +56,13 @@ class ProjectFile(models.Model):
 
     def ext(self):
         name = self.original_name.upper()
-        for ext in ['PDF', 'DOCX', 'DOC', 'XLSX', 'XLS', 'TXT', 'CSV',
-                    'JPEG', 'JPG', 'PNG']:
+        for ext in ['PDF', 'DOCX', 'DOC', 'XLSX', 'XLS', 'TXT', 'CSV', 'JPEG', 'JPG', 'PNG']:
             if name.endswith(ext):
                 return ext
         return 'FILE'
 
     class Meta:
-        verbose_name = '참고자료'
+        verbose_name = '자료'
         ordering = ['-uploaded_at']
 
 
@@ -164,7 +152,7 @@ class TeamMember(models.Model):
         ('디자인', '디자인'),
         ('기타', '기타'),
     ]
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='members')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='members_info')
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='team_roles')
     name = models.CharField(max_length=50)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='기타')

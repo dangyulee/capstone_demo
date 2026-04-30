@@ -9,29 +9,27 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import ProjectTopicForm, ScheduleEventForm
-from .models import FileReviewItem, Project, ProjectFile, ProjectReference, ScheduleEvent, Team, TeamMember, TeamReview, TeamReviewItem
+from .models import FileReviewItem, Project, ProjectFile, ProjectReference, ScheduleEvent, TeamMember, TeamReview, TeamReviewItem
 
 
 def _get_project_for_user(user):
-    """유저의 첫 번째 팀에 연결된 프로젝트를 반환. 없으면 생성."""
     if user and user.is_authenticated:
-        team = user.teams.first()
-        if team:
-            project = team.projects.first()
-            if not project:
-                project = Project.objects.create(team=team, title='', description='')
+        project = user.projects.first()
+        if project:
             return project
-    # 팀이 없는 경우 임시 개인 프로젝트
-    project, _ = Project.objects.get_or_create(id=1, defaults={'title': '', 'description': ''})
-    return project
+    try:
+        return Project.objects.get(id=1)
+    except Project.DoesNotExist:
+        return Project.objects.create(
+            id=1, name='', title='', description='', join_code=Project.generate_code()
+        )
 
 
 def _base_context(tab='', request=None):
     project = _get_project_for_user(request.user if request else None)
     ctx = {'tab': tab, 'current_project': project}
     if request and request.user.is_authenticated:
-        ctx['user_teams'] = request.user.teams.all()
-        ctx['current_team'] = request.user.teams.first()
+        ctx['user_projects'] = request.user.projects.all()
     return ctx
 
 
@@ -42,7 +40,7 @@ def signup(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('project_settings_topic')
+            return redirect('project_list')
     else:
         form = UserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
@@ -50,7 +48,9 @@ def signup(request):
 
 # ── 메인 리다이렉트 ──────────────────────────────────────────────
 def index(request):
-    return redirect('project_settings_topic')
+    if request.user.is_authenticated:
+        return redirect('project_list')
+    return redirect('login')
 
 
 # ── 자료 검증 탭 ────────────────────────────────────────────────
@@ -140,9 +140,7 @@ def review(request):
     if selected_file:
         team_review_items = list(selected_file.team_review_items.select_related('reviewer').all())
 
-        # 팀 전체 멤버(본인 제외) 기준으로 reviewer_groups 구성
-        team_obj = project.team
-        all_members = list(team_obj.members.exclude(id=request.user.id)) if team_obj else []
+        all_members = list(project.members.exclude(id=request.user.id))
 
         votes = {
             v.reviewer.id: v
@@ -248,34 +246,34 @@ def export(request):
     return render(request, 'core/export.html', ctx)
 
 
-# ── 팀 관리 ─────────────────────────────────────────────────────
+# ── 프로젝트 목록 ─────────────────────────────────────────────────
 @login_required
-def team_list(request):
+def project_list(request):
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'create_team':
+        if action == 'create_project':
             name = request.POST.get('name', '').strip()
             if name:
-                team = Team.objects.create(name=name, join_code=Team.generate_code())
-                team.members.add(request.user)
-        elif action == 'join_team':
+                project = Project.objects.create(name=name, join_code=Project.generate_code())
+                project.members.add(request.user)
+        elif action == 'join_project':
             code = request.POST.get('join_code', '').strip()
-            try:
-                team = Team.objects.get(join_code=code)
-                team.members.add(request.user)
-            except Team.DoesNotExist:
-                ctx = _base_context('teams', request)
-                ctx['all_teams'] = Team.objects.all()
-                ctx['error'] = f'입장 코드 {code}에 해당하는 팀이 없습니다.'
-                return render(request, 'core/team_list.html', ctx)
-        elif action == 'delete_team':
-            team_id = request.POST.get('team_id')
-            Team.objects.filter(id=team_id).delete()
-        return redirect('team_list')
+            project = Project.objects.filter(join_code=code).first()
+            if project:
+                project.members.add(request.user)
+            else:
+                ctx = _base_context('projects', request)
+                ctx['all_projects'] = request.user.projects.all()
+                ctx['error'] = f'입장 코드 {code}에 해당하는 프로젝트가 없습니다.'
+                return render(request, 'core/project_list.html', ctx)
+        elif action == 'delete_project':
+            project_id = request.POST.get('project_id')
+            Project.objects.filter(id=project_id).delete()
+        return redirect('project_list')
 
-    ctx = _base_context('teams', request)
-    ctx['all_teams'] = Team.objects.all()
-    return render(request, 'core/team_list.html', ctx)
+    ctx = _base_context('projects', request)
+    ctx['all_projects'] = request.user.projects.all()
+    return render(request, 'core/project_list.html', ctx)
 
 
 # ── 프로젝트 설정: 주제 설정 ────────────────────────────────────
@@ -284,11 +282,11 @@ def project_settings_topic(request):
     project = _get_project_for_user(request.user)
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'save_team_name':
-            name = request.POST.get('team_name', '').strip()
-            if name and project.team:
-                project.team.name = name
-                project.team.save(update_fields=['name'])
+        if action == 'save_project_name':
+            name = request.POST.get('project_name', '').strip()
+            if name:
+                project.name = name
+                project.save(update_fields=['name'])
             return redirect('project_settings_topic')
         elif action == 'save_topic':
             form = ProjectTopicForm(request.POST, instance=project)
@@ -333,15 +331,12 @@ def delete_file(request, file_id):
 @login_required
 def project_settings_role(request):
     project = _get_project_for_user(request.user)
-    team = project.team
 
-    # 팀원 계정과 TeamMember 자동 동기화
-    if team:
-        for i, user in enumerate(team.members.all()):
-            TeamMember.objects.get_or_create(
-                project=project, user=user,
-                defaults={'name': user.username, 'role': '기타', 'order': i},
-            )
+    for i, user in enumerate(project.members.all()):
+        TeamMember.objects.get_or_create(
+            project=project, user=user,
+            defaults={'name': user.username, 'role': '기타', 'order': i},
+        )
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -356,7 +351,7 @@ def project_settings_role(request):
     ctx.update({
         'sub_tab': 'role',
         'project': project,
-        'members': project.members.select_related('user').order_by('order', 'id'),
+        'members': project.members_info.select_related('user').order_by('order', 'id'),
         'role_choices': TeamMember.ROLE_CHOICES,
     })
     return render(request, 'core/project_settings_role.html', ctx)

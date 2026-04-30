@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}프로젝트 관리{% endblock %}
+
+{% block main_nav %}{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">프로젝트 관리</h1>
+    <p class="page-desc">프로젝트를 생성하거나 초대 코드로 참여하세요.</p>
+  </div>
+
+  <div class="team-layout">
+
+    <!-- 프로젝트 목록 테이블 -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">프로젝트 목록</h3>
+        <button class="btn-primary" onclick="document.getElementById('create-form').classList.toggle('hidden')">+ 프로젝트 생성</button>
+      </div>
+
+      <!-- 프로젝트 생성 폼 (토글) -->
+      <div id="create-form" class="hidden team-create-form">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_project">
+          <div class="team-create-row">
+            <input type="text" name="name" class="form-input" placeholder="프로젝트 이름을 입력하세요" required>
+            <button type="submit" class="btn-primary">생성</button>
+          </div>
+          <p class="create-hint">프로젝트 생성 시 6자리 랜덤 입장 코드가 자동 발급됩니다.</p>
+        </form>
+      </div>
+
+      <!-- 프로젝트 테이블 -->
+      <div class="team-table-wrap">
+        <table class="team-table">
+          <thead>
+            <tr>
+              <th>프로젝트 이름</th>
+              <th>입장 코드</th>
+              <th>생성일</th>
+              <th>참여 인원</th>
+              <th>삭제</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for project in all_projects %}
+            <tr>
+              <td class="team-name-cell"><a href="{% url 'review' %}" class="team-name-link">{{ project.name }}</a></td>
+              <td>
+                <span class="join-code-badge">{{ project.join_code }}</span>
+              </td>
+              <td class="text-muted">{{ project.created_at|date:"Y.m.d" }}</td>
+              <td class="text-muted">{{ project.members.count }}명</td>
+              <td>
+                <form method="post" onsubmit="return confirm('프로젝트를 삭제하시겠습니까?')">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete_project">
+                  <input type="hidden" name="project_id" value="{{ project.id }}">
+                  <button type="submit" class="btn-delete" title="삭제">🗑</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="table-empty">생성된 프로젝트가 없습니다. 프로젝트를 생성해보세요.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 프로젝트 입장 -->
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:16px;">프로젝트 입장</h3>
+      <p class="card-value" style="margin-bottom:16px;">초대받은 6자리 입장 코드를 입력하여 프로젝트에 참여하세요.</p>
+
+      {% if error %}
+      <div class="alert-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="join_project">
+        <div class="join-form-row">
+          <input type="text" name="join_code" class="form-input join-code-input"
+                 placeholder="6자리 입장 코드" maxlength="6" pattern="[0-9]{6}"
+                 title="숫자 6자리를 입력하세요" required>
+          <button type="submit" class="btn-primary">입장</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
