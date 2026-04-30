@@ -1,57 +1,11 @@
-```
+# 팀프로젝트 자료조사 검증 서비스
 
----
-
-## 📂 모델 구조 요약
-
-| 모델 | 설명 |
-|---|---|
-| `Team` / `Project` | 팀 정보 및 프로젝트 핵심 설정 |
-| `ProjectFile` | 제출된 검증 대상 자료 (상태 값 포함) |
-| `FileReviewItem` | AI가 생성한 리뷰 항목 |
-| `TeamReviewItem` | 팀원이 드래그하여죄송합니다! 제가 이미지 파일명을 텍스트로만 설명드렸네요. `README.md`에서 바로 이미지가 보이도록 마크다운 형식을 적용해 다시 작성해 드립니다.
-
----
-
-# # 팀프로젝트 자료조사 검증 서비스
-
-AI 기반 팀 프로젝트 자료 검증 웹 서비스입니다.  
+AI 기반 팀 프로젝트 자료 검증 웹 서비스입니다.  
 팀원이 제출한 자료를 AI가 분석하고, 팀원들이 함께 리뷰·투표하여 자료의 신뢰성을 검증합니다.
 
 ---
 
-## 🖥️ 화면 예시
-
-### 1. 자료 검증 (`/review/`)
-팀원이 제출한 자료를 바탕으로 AI와 다른 팀원들이 교차 검증을 수행하는 핵심 공간입니다. 3패널 레이아웃으로 구성되어 있습니다.
-
-| 구분 | 화면 예시 | 설명 |
-|:---:|:---:|---|
-| **AI 리뷰** | ![AI 리뷰](image_e3011b.png) | 제출된 자료의 본문을 가운데 뷰어에서 확인하며, 오른쪽 패널의 **[AI 리뷰]** 탭에서 AI가 분석한 문제점과 제안 사항을 확인합니다. |
-| **팀원 리뷰** | ![팀원 리뷰](image_e300dd.png) | **[팀원 리뷰]** 탭에서 다른 팀원들이 남긴 리뷰 목록을 확인합니다. 리뷰어별로 토글하여 의견을 볼 수 있습니다. |
-| **내 리뷰 남기기** | ![내 리뷰 남기기](image_e300b9.png) | 본문에서 텍스트를 드래그하여 자동으로 원문을 입력받고, 내 의견을 작성하여 제출 및 투표를 진행합니다. |
-
-### 2. 자료 보관함 (`/archive/`)
-
-![자료 보관함](image_e30082.png)
-*   팀 내에서 제출된 모든 자료의 검증 현황(리뷰 중, 검증 완료, 거절됨)을 한눈에 파악하고 관리합니다.
-
-### 3. 팀 관리 (`/teams/`)
-
-| 구분 | 화면 예시 | 설명 |
-|:---:|:---:|---|
-| **프로젝트 개요** | ![프로젝트 개요](image_e2fd76.png) | 팀 이름, 주제, 상세 설명을 편집하고 공통 참고자료(PDF)를 업로드합니다. |
-| **역할 분담** | ![역할 분담](image_e2fd54.png) | 각 팀원의 역할을 설정하고 관리합니다. |
-| **일정 관리** | ![일정 관리](image_e2fd35.png) | 캘린더를 통해 프로젝트의 전체 일정을 공유하고 추가합니다. |
-
-### 4. 내보내기 (`/export/`)
-
-![내보내기](image_e2fcff.png)
-*   검증이 완료된 데이터를 바탕으로 보고서나 발표 자료 형식을 생성합니다. (구현 예정)
-
----
-
-## 🛠 기술 스택
+## 기술 스택
 
 - **Backend** : Python 3.13, Django 6.0.4
 - **Frontend** : Django Template, Vanilla JS, CSS
@@ -60,33 +14,130 @@ AI 기반 팀 프로젝트 자료 검증 웹 서비스입니다.
 
 ---
 
-## 🚀 로컬 실행
+## 로컬 실행
 
 ### 1. 가상환경 활성화
+
 ```bash
 # Windows
 source myvenv/Scripts/activate
+
 # Mac/Linux
 source myvenv/bin/activate
 ```
 
-### 2. 패키지 설치 & 설정
+### 2. 패키지 설치
+
 ```bash
 pip install -r requirements.txt
-cp .env.example .env  # 이후 .env 파일 설정
+```
+
+### 3. 환경변수 설정
+
+```bash
+cp .env.example .env
+# .env 파일을 열어 SECRET_KEY 등을 설정
+```
+
+### 4. DB 마이그레이션
+
+```bash
 python manage.py migrate
+```
+
+### 5. 개발 서버 실행
+
+```bash
 python manage.py runserver
+# → http://127.0.0.1:8000
 ```
 
 ---
 
-## 📂 모델 구조 요약
+## 디렉토리 구조
+
+```
+종합설계 구현/
+├── config/
+│   ├── settings.py          # 환경변수(.env) 기반 설정
+│   └── urls.py
+├── core/
+│   ├── models.py            # 전체 모델 정의
+│   ├── views.py             # 뷰 함수
+│   ├── urls.py
+│   ├── forms.py
+│   └── admin.py
+├── templates/
+│   ├── base.html            # 공통 레이아웃 (헤더 + 메인 탭)
+│   ├── registration/        # 로그인 / 회원가입
+│   └── core/
+│       ├── review.html              # 자료 검증 (3패널 레이아웃)
+│       ├── archive.html             # 자료 보관함
+│       ├── export.html              # 내보내기
+│       ├── team_list.html           # 팀 관리
+│       ├── project_settings_topic.html    # 팀 관리 > 주제 설정
+│       ├── project_settings_role.html     # 팀 관리 > 역할 분담
+│       └── project_settings_schedule.html # 팀 관리 > 스케줄
+├── static/
+│   ├── css/main.css
+│   └── js/main.js
+├── media/                   # 업로드 파일 (gitignore)
+├── .env                     # 환경변수 (gitignore)
+├── .env.example             # 환경변수 템플릿
+├── .gitignore
+└── manage.py
+```
+
+---
+
+## 주요 URL
+
+| URL | 설명 |
+|---|---|
+| `/accounts/signup/` | 회원가입 |
+| `/accounts/login/` | 로그인 |
+| `/review/` | 자료 검증 |
+| `/archive/` | 자료 보관함 |
+| `/export/` | 내보내기 |
+| `/teams/` | 팀 관리 |
+| `/settings/topic/` | 팀 관리 > 주제 설정 |
+| `/settings/role/` | 팀 관리 > 역할 분담 |
+| `/settings/schedule/` | 팀 관리 > 스케줄 |
+
+---
+
+## 주요 기능
+
+### 자료 검증 (`/review/`)
+- 왼쪽 사이드바에서 자료 제출 (줄 글 + PDF 첨부)
+- 가운데 뷰어에서 내용 확인 및 텍스트 드래그로 리뷰 작성
+- 오른쪽 패널 3탭:
+  - **AI 리뷰** — AI가 분석한 문제점·제안 (하이라이트 연동)
+  - **팀원 리뷰** — 다른 팀원의 리뷰 목록 (리뷰어별 토글)
+  - **리뷰 남기기** — 내 리뷰 작성 + 승인/보류/거절 투표
+
+### 자료 보관함 (`/archive/`)
+- 리뷰 중 / 검증 완료 / 거절됨 세 섹션으로 구분
+- 자료 제목 클릭 → 자료 검증 뷰어로 이동
+
+### 팀 관리
+- 팀 생성 및 6자리 초대코드 발급
+- 초대코드로 팀 참여
+- 주제·상세설명 인라인 편집, 참고자료(PDF) 업로드
+- 역할 분담 설정, 월별 스케줄 관리
+
+---
+
+## 모델 구조
 
 | 모델 | 설명 |
 |---|---|
-| `Team` / `Project` | 팀 정보 및 프로젝트 핵심 설정 |
-| `ProjectFile` | 제출된 검증 대상 자료 (상태 값 포함) |
-| `FileReviewItem` | AI가 생성한 리뷰 항목 |
-| `TeamReviewItem` | 팀원이 드래그하여 작성한 리뷰 항목 |
-| `ScheduleEvent` | 프로젝트 일정 데이터 |
-```
+| `Team` | 팀 (초대코드, 멤버) |
+| `Project` | 프로젝트 (팀당 1개) |
+| `ProjectFile` | 검증 자료 (줄글/PDF, pending→verified/rejected) |
+| `ProjectReference` | 팀 관리 참고자료 (PDF, 프로젝트 전체 공유) |
+| `FileReviewItem` | AI 리뷰 항목 (해당내용·문제점·제안) |
+| `TeamReviewItem` | 팀원 리뷰 항목 (드래그 선택 기반) |
+| `TeamReview` | 팀원 최종 투표 (승인/보류/거절) |
+| `TeamMember` | 역할 분담 멤버 |
+| `ScheduleEvent` | 스케줄 일정 |
