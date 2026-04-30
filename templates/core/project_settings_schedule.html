@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}프로젝트 설정 - 스케줄{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <!-- 서브 탭 -->
+  <div class="sub-nav">
+    <a href="{% url 'project_settings_topic' %}" class="sub-tab {% if sub_tab == 'topic' %}active{% endif %}">프로젝트 개요</a>
+    <a href="{% url 'project_settings_role' %}" class="sub-tab {% if sub_tab == 'role' %}active{% endif %}">역할 분담</a>
+    <a href="{% url 'project_settings_schedule' %}" class="sub-tab {% if sub_tab == 'schedule' %}active{% endif %}">일정 관리</a>
+  </div>
+
+  <div class="settings-body">
+    <div class="card calendar-card">
+      <!-- 달력 헤더 -->
+      <div class="cal-header">
+        <h3 class="cal-title">{{ year }}년 {{ month }}월</h3>
+        <div class="cal-nav">
+          <a href="?year={{ prev_year }}&month={{ prev_month }}" class="cal-nav-btn">&#8249;</a>
+          <a href="?year={{ next_year }}&month={{ next_month }}" class="cal-nav-btn">&#8250;</a>
+        </div>
+      </div>
+
+      <!-- 달력 그리드 (래퍼로 감싸서 테두리 통일) -->
+      <div class="cal-wrap">
+      <!-- 요일 헤더 -->
+      <div class="cal-grid cal-weekdays">
+        <div class="cal-weekday sunday">일</div>
+        <div class="cal-weekday">월</div>
+        <div class="cal-weekday">화</div>
+        <div class="cal-weekday">수</div>
+        <div class="cal-weekday">목</div>
+        <div class="cal-weekday">금</div>
+        <div class="cal-weekday saturday">토</div>
+      </div>
+
+      <!-- 달력 본체 -->
+      {% for week in weeks %}
+      <div class="cal-grid cal-week">
+        {% for day in week %}
+        <div class="cal-day {% if day.day == 0 %}empty{% endif %} {% if day.is_today %}today{% endif %} {% if day.events %}has-event{% endif %}">
+          {% if day.day != 0 %}
+          <span class="cal-day-num {% if day.is_sunday %}sunday{% endif %} {% if day.is_saturday %}saturday{% endif %}">{{ day.day }}</span>
+          {% for event in day.events %}
+          <form method="post" class="event-item-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_event">
+            <input type="hidden" name="event_id" value="{{ event.id }}">
+            <button type="submit" class="cal-event" title="클릭하여 삭제" onclick="return confirm('일정을 삭제하시겠습니까?')">
+              {{ event.title }}
+            </button>
+          </form>
+          {% endfor %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      </div><!-- /.cal-wrap -->
+    </div>
+
+    <!-- 일정 추가 폼 -->
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:16px;">일정 추가</h3>
+      <form method="post" class="event-add-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_event">
+        <div class="event-form-row">
+          <input type="date" name="date" class="form-input" required>
+          <input type="text" name="title" class="form-input" placeholder="일정 제목" required>
+          <button type="submit" class="btn-primary">추가</button>
+        </div>
+      </form>
+
+      {% if all_events %}
+      <div class="event-list-section">
+        <h4 class="event-list-title">전체 일정</h4>
+        {% for event in all_events %}
+        <div class="event-list-item">
+          <span class="event-date">{{ event.date|date:"Y.m.d" }}</span>
+          <span class="event-title">{{ event.title }}</span>
+          <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_event">
+            <input type="hidden" name="event_id" value="{{ event.id }}">
+            <button type="submit" class="btn-delete-sm" onclick="return confirm('삭제하시겠습니까?')">✕</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

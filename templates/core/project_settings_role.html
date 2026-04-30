@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}프로젝트 설정 - 역할 분담{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <!-- 서브 탭 -->
+  <div class="sub-nav">
+    <a href="{% url 'project_settings_topic' %}" class="sub-tab {% if sub_tab == 'topic' %}active{% endif %}">프로젝트 개요</a>
+    <a href="{% url 'project_settings_role' %}" class="sub-tab {% if sub_tab == 'role' %}active{% endif %}">역할 분담</a>
+    <a href="{% url 'project_settings_schedule' %}" class="sub-tab {% if sub_tab == 'schedule' %}active{% endif %}">일정 관리</a>
+  </div>
+
+  <div class="settings-body">
+    <div class="card">
+      <h3 class="card-title" style="margin-bottom:20px;">팀원 역할 분담</h3>
+
+      <form method="post" id="role-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_roles">
+        <div class="member-list" id="member-list">
+          {% for member in members %}
+          <div class="member-row">
+            <div class="member-avatar">{{ member.user.username|slice:":1"|upper|default:member.avatar_char }}</div>
+            <input type="hidden" name="user_id" value="{{ member.user.id }}">
+            <span class="member-name-display">{{ member.user.username|default:member.name }}</span>
+            <input type="text" name="role" value="{{ member.role }}"
+                   class="form-input member-role" placeholder="역할 입력">
+          </div>
+          {% empty %}
+          <p class="empty-msg">팀원이 없습니다. 팀 관리에서 초대코드로 팀원을 초대하세요.</p>
+          {% endfor %}
+        </div>
+
+        <div class="role-form-footer">
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROLE_CHOICES = [
+  {% for val, label in role_choices %}['{{ val }}', '{{ label }}'],{% endfor %}
+];
+
+function addMemberRow() {
+  const list = document.getElementById('member-list');
+  const emptyMsg = list.querySelector('.empty-msg');
+  if (emptyMsg) emptyMsg.remove();
+
+  const row = document.createElement('div');
+  row.className = 'member-row new-row';
+  row.innerHTML = `
+    <div class="member-avatar">?</div>
+    <input type="text" name="name" value="" class="form-input member-name" placeholder="이름" oninput="updateAvatar(this)">
+    <select name="role" class="form-select member-role">
+      ${ROLE_CHOICES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+    </select>
+    <button type="button" class="btn-delete-member" onclick="this.closest('.member-row').remove()">✕</button>
+  `;
+  list.appendChild(row);
+}
+
+function updateAvatar(input) {
+  const avatar = input.closest('.member-row').querySelector('.member-avatar');
+  avatar.textContent = input.value.trim()[0] || '?';
+}
+</script>
+{% endblock %}

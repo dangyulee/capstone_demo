@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}프로젝트 설정 - 주제 설정{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <!-- 서브 탭 -->
+  <div class="sub-nav">
+    <a href="{% url 'project_settings_topic' %}" class="sub-tab {% if sub_tab == 'topic' %}active{% endif %}">프로젝트 개요</a>
+    <a href="{% url 'project_settings_role' %}" class="sub-tab {% if sub_tab == 'role' %}active{% endif %}">역할 분담</a>
+    <a href="{% url 'project_settings_schedule' %}" class="sub-tab {% if sub_tab == 'schedule' %}active{% endif %}">일정 관리</a>
+  </div>
+
+  <div class="settings-body">
+    <!-- 팀 이름 카드 -->
+    <div class="card" id="teamname-card">
+      <div class="card-header">
+        <h3 class="card-title">팀 이름</h3>
+        <button class="btn-text" onclick="toggleEdit('teamname')">수정</button>
+      </div>
+      <div id="teamname-view">
+        <p class="card-value">{{ current_team.name|default:"(팀 이름 없음)" }}</p>
+      </div>
+      <div id="teamname-edit" class="hidden">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_team_name">
+          <input type="text" name="team_name" value="{{ current_team.name }}"
+                 class="form-input" placeholder="팀 이름을 입력하세요">
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="toggleEdit('teamname')">취소</button>
+            <button type="submit" class="btn-primary">저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 주제 카드 -->
+    <div class="card" id="topic-card">
+      <div class="card-header">
+        <h3 class="card-title">주제</h3>
+        <button class="btn-text" onclick="toggleEdit('topic')">수정</button>
+      </div>
+      <div id="topic-view">
+        <p class="card-value">{{ project.title|default:"(주제를 입력하세요)" }}</p>
+      </div>
+      <div id="topic-edit" class="hidden">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_topic">
+          <input type="text" name="title" value="{{ project.title }}" class="form-input" placeholder="프로젝트 주제를 입력하세요">
+          <!-- 상세 설명도 함께 저장 -->
+          <input type="hidden" name="description" id="hidden-desc" value="{{ project.description }}">
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="toggleEdit('topic')">취소</button>
+            <button type="submit" class="btn-primary">저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 상세 설명 카드 -->
+    <div class="card" id="desc-card">
+      <div class="card-header">
+        <h3 class="card-title">상세 설명</h3>
+        <button class="btn-text" onclick="toggleEdit('desc')">수정</button>
+      </div>
+      <div id="desc-view">
+        <p class="card-value">{{ project.description|default:"(상세 설명을 입력하세요)" }}</p>
+      </div>
+      <div id="desc-edit" class="hidden">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_topic">
+          <input type="hidden" name="title" value="{{ project.title }}">
+          <textarea name="description" class="form-textarea" rows="4" placeholder="상세 설명을 입력하세요">{{ project.description }}</textarea>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="toggleEdit('desc')">취소</button>
+            <button type="submit" class="btn-primary">저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 참고자료 카드 -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">참고자료</h3>
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="upload_file">
+          <label class="btn-primary btn-upload" for="file-input">
+            <span>↑ 업로드</span>
+          </label>
+          <input type="file" id="file-input" name="file" class="hidden" accept=".pdf" onchange="document.getElementById('upload-form').submit()">
+        </form>
+      </div>
+      <div class="file-list">
+        {% for f in files %}
+        <div class="file-item">
+          <div class="file-info">
+            <span class="file-name">{{ f.original_name }}</span>
+            <span class="file-meta">{{ f.uploaded_at|date:"Y-m-d" }} · {{ f.size_display }}</span>
+          </div>
+          <form method="post" action="{% url 'delete_file' f.id %}" onsubmit="return confirm('삭제하시겠습니까?')">
+            {% csrf_token %}
+            <button type="submit" class="btn-delete" title="삭제">🗑</button>
+          </form>
+        </div>
+        {% empty %}
+        <p class="empty-msg">업로드된 파일이 없습니다.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleEdit(section) {
+  const view = document.getElementById(section + '-view');
+  const edit = document.getElementById(section + '-edit');
+  view.classList.toggle('hidden');
+  edit.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

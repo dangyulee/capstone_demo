@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}자료 검증{% endblock %}
+
+{% block content %}
+
+<div class="review-layout">
+
+  <!-- ── 왼쪽: 사이드바 ── -->
+  <aside class="review-sidebar">
+
+    <button type="button" class="btn-sidebar-action" onclick="goToWriteMode()">자료 제출하기</button>
+    <div class="submit-panel">
+      <div class="submit-field">
+        <label class="submit-field-label">제목 <span class="required-mark">*</span></label>
+        <input type="text" name="topic" form="submitForm"
+               class="form-input sidebar-input" placeholder="자료 제목" required>
+      </div>
+      <div class="submit-field">
+        <label class="submit-field-label">파일 첨부 <span class="sub-badge">PDF</span></label>
+        <label class="upload-box-sm" for="docFileInput">
+          <span>📎</span>
+          <span id="fileLabel">파일 선택</span>
+        </label>
+        <input type="file" id="docFileInput" name="file" form="submitForm"
+               class="hidden" accept=".pdf" onchange="updateFileLabel(this)">
+      </div>
+      <button type="submit" form="submitForm" class="btn-primary btn-submit-full">제출</button>
+    </div>
+
+    <div class="sidebar-divider-line"></div>
+
+    <div class="sidebar-section">
+      <p class="sidebar-label">
+        현재 자료 목록
+        <span class="doc-count">{{ doc_files.count }}</span>
+        <a href="{% url 'archive' %}" class="sidebar-archive-link">보관함 →</a>
+      </p>
+      <div class="file-list">
+        {% for f in doc_files %}
+        <a href="?doc={{ f.id }}"
+           class="file-item review-file-item {% if selected_file.id == f.id %}selected{% endif %}">
+          <div class="file-info">
+            <span class="file-name">{{ f.original_name }}</span>
+            <span class="file-meta">{{ f.uploaded_at|date:"Y-m-d" }}{% if f.file_size %} · {{ f.size_display }}{% endif %}</span>
+            <span class="doc-status-badge status-{{ f.status }}">
+              {% if f.status == 'pending' %}리뷰 중{% elif f.status == 'verified' %}검증 완료{% else %}거절됨{% endif %}
+            </span>
+          </div>
+        </a>
+        {% empty %}
+        <p class="empty-msg">제출된 자료가 없습니다.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── 중앙: 글 입력 / 자료 뷰어 ── -->
+  <div class="review-main {% if not selected_file %}review-editor{% endif %}">
+    {% if selected_file %}
+    <div class="doc-viewer-header">
+      <span class="doc-status-badge status-{{ selected_file.status }}">
+        {% if selected_file.status == 'pending' %}리뷰 중{% elif selected_file.status == 'verified' %}검증 완료{% else %}거절됨{% endif %}
+      </span>
+      <span class="doc-viewer-name">{{ selected_file.original_name }}</span>
+    </div>
+    <div class="doc-viewer-body">
+      <div class="doc-meta-row">
+        <span class="doc-meta-item">업로더: {{ selected_file.uploaded_by.username|default:"알 수 없음" }}</span>
+        <span class="doc-meta-item">업로드: {{ selected_file.uploaded_at|date:"Y.m.d" }}</span>
+      </div>
+      {% if selected_file.content %}
+      <div class="doc-text-content" id="doc-content">
+        {% if highlighted_content %}{{ highlighted_content|safe }}
+        {% else %}{{ selected_file.content|linebreaksbr }}{% endif %}
+      </div>
+      {% endif %}
+      {% if selected_file.file %}
+      <div class="viewer-file-list">
+        <p class="viewer-file-list-label">첨부 파일</p>
+        <div class="file-item" style="border-top:none;">
+          <div class="file-info">
+            <span class="file-name">{{ selected_file.original_name }}</span>
+            <span class="file-meta">{{ selected_file.uploaded_at|date:"Y-m-d" }}{% if selected_file.file_size %} · {{ selected_file.size_display }}{% endif %}</span>
+          </div>
+          <a href="{{ selected_file.file.url }}" download class="btn-delete" title="다운로드">⬇</a>
+        </div>
+      </div>
+      {% endif %}
+      {% if not selected_file.content and not selected_file.file %}
+      <p style="color:#9ca3af;font-size:13px;">내용이 없습니다.</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="editor-header">
+      <p class="editor-title">검증 내용 입력</p>
+      <p class="editor-hint">검증할 줄 글을 입력하고 제출하세요.</p>
+    </div>
+    <textarea name="content" form="submitForm" class="center-textarea"
+              placeholder="검증할 내용을 여기에 입력하세요..."></textarea>
+    {% endif %}
+  </div>
+
+  <!-- ── 오른쪽: AI 리뷰 + 팀원 리뷰 ── -->
+  <aside class="review-result">
+
+    {% if selected_file %}
+
+    <!-- 탭 버튼 -->
+    <div class="result-tabs">
+      <button class="result-tab active" id="tab-ai" onclick="switchTab('ai')">AI 리뷰</button>
+      <button class="result-tab" id="tab-team" onclick="switchTab('team')">
+        팀원 리뷰
+        {% if other_review_count %}<span class="doc-count" style="margin-left:4px;">{{ other_review_count }}</span>{% endif %}
+      </button>
+      <button class="result-tab" id="tab-write" onclick="switchTab('write')">
+        내 리뷰
+        {% if my_team_review_items %}<span class="doc-count" style="margin-left:4px;">{{ my_team_review_items|length }}</span>{% endif %}
+      </button>
+    </div>
+
+    <!-- AI 검증 탭 -->
+    <div id="panel-ai" class="result-panel">
+      {% with items=selected_file.review_items.all %}
+      {% if items %}
+      <div class="ai-reviews">
+        {% for item in items %}
+        <div class="ai-review-card" id="review-card-{{ forloop.counter0 }}"
+             onclick="focusHighlight({{ forloop.counter0 }})">
+          <div class="ai-review-number"># {{ forloop.counter }}</div>
+          <div class="ai-review-body">
+            <div class="ai-review-section">
+              <span class="ai-review-label">원문</span>
+              <p class="ai-review-quote">{{ item.highlighted_text }}</p>
+            </div>
+            <div class="ai-review-section">
+              <span class="ai-review-label label-problem">문제점</span>
+              <p class="ai-review-text">{{ item.problem }}</p>
+            </div>
+            <div class="ai-review-section">
+              <span class="ai-review-label label-suggest">제안</span>
+              <p class="ai-review-text">{{ item.suggestion }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="doc-empty" style="margin-top:16px;">AI 리뷰 없음</p>
+      {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- 팀원 리뷰 탭 -->
+    <div id="panel-team" class="result-panel" style="display:none;">
+      {% if reviewer_groups %}
+      <div class="team-review-list">
+        {% for group in reviewer_groups %}
+        <div class="team-review-row {% if not group.vote and not group.items %}no-response{% endif %}"
+             id="reviewer-row-{{ group.reviewer.id }}"
+             onclick="toggleReviewer({{ group.reviewer.id }})">
+          <div class="team-review-avatar">{{ group.reviewer.username|slice:":1"|upper }}</div>
+          <div class="team-review-row-info">
+            <span class="team-review-name">{{ group.reviewer.username }}</span>
+            <span class="team-review-row-preview">
+              {% if group.items %}리뷰 {{ group.items|length }}개{% endif %}
+            </span>
+          </div>
+          <!-- 최종 의견 뱃지 -->
+          {% if group.vote %}
+            {% if group.vote.vote == 'approve' %}<span class="team-vote-badge vote-approve">승인</span>
+            {% elif group.vote.vote == 'hold' %}<span class="team-vote-badge vote-hold">보류</span>
+            {% else %}<span class="team-vote-badge vote-reject">거절</span>{% endif %}
+          {% elif not group.items %}
+            <span class="team-vote-badge vote-none">미응답</span>
+          {% endif %}
+          {% if group.items %}<span class="team-row-arrow" id="reviewer-arrow-{{ group.reviewer.id }}">▶</span>{% endif %}
+        </div>
+
+        {% if group.items %}
+        <div class="reviewer-items" id="reviewer-items-{{ group.reviewer.id }}" style="display:none;">
+          {% for entry in group.items %}
+          <div class="ai-review-card team-review-item-card" id="team-card-{{ entry.index }}"
+               onclick="focusTeamHighlight({{ entry.index }})">
+            <div class="ai-review-body">
+              <div class="ai-review-section">
+                <span class="ai-review-label">원문</span>
+                <p class="ai-review-quote">{{ entry.item.highlighted_text }}</p>
+              </div>
+              <div class="ai-review-section">
+                <span class="ai-review-label label-problem">문제점</span>
+                <p class="ai-review-text">{{ entry.item.problem }}</p>
+              </div>
+              <div class="ai-review-section">
+                <span class="ai-review-label label-suggest">제안</span>
+                <p class="ai-review-text">{{ entry.item.suggestion }}</p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="doc-empty" style="margin-top:16px;">팀원이 없습니다.</p>
+      {% endif %}
+    </div>
+
+    <!-- 리뷰 남기기 탭 -->
+    <div id="panel-write" class="result-panel" style="display:none;">
+
+      <!-- 리뷰 작성 폼 -->
+      <p class="team-review-hint" style="margin-bottom:10px;">글을 드래그하면 자동으로 채워집니다</p>
+      <form method="post" style="display:flex;flex-direction:column;gap:10px;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="submit_team_review">
+        <input type="hidden" name="file_id" value="{{ selected_file.id }}">
+        <div class="review-panel-field">
+          <label class="submit-field-label">원문 <span class="required-mark">*</span></label>
+          <textarea name="highlighted_text" id="panel-hl-text" class="popup-textarea"
+                    placeholder="드래그하거나 직접 입력" required></textarea>
+        </div>
+        <div class="review-panel-field">
+          <label class="submit-field-label">문제점 <span class="required-mark">*</span></label>
+          <textarea name="problem" class="popup-textarea" placeholder="문제점을 입력하세요" required></textarea>
+        </div>
+        <div class="review-panel-field">
+          <label class="submit-field-label">제안</label>
+          <textarea name="suggestion" class="popup-textarea" placeholder="제안 내용을 입력하세요"></textarea>
+        </div>
+        <button type="submit" class="btn-primary btn-submit-full">리뷰 제출</button>
+      </form>
+
+      <!-- 내 리뷰 목록 -->
+      {% if my_team_review_items %}
+      <div class="result-divider" style="margin:14px 0;"></div>
+      <p class="submit-field-label" style="margin-bottom:8px;">내 리뷰 목록</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        {% for r in my_team_review_items %}
+        <div class="ai-review-card team-review-item-card" style="position:relative;">
+          <div class="ai-review-body">
+            <div class="ai-review-section">
+              <span class="ai-review-label">원문</span>
+              <p class="ai-review-quote">{{ r.highlighted_text }}</p>
+            </div>
+            <div class="ai-review-section">
+              <span class="ai-review-label label-problem">문제점</span>
+              <p class="ai-review-text">{{ r.problem }}</p>
+            </div>
+            {% if r.suggestion %}
+            <div class="ai-review-section">
+              <span class="ai-review-label label-suggest">제안</span>
+              <p class="ai-review-text">{{ r.suggestion }}</p>
+            </div>
+            {% endif %}
+          </div>
+          <form method="post" style="position:absolute;top:10px;right:10px;"
+                onsubmit="return confirm('삭제하시겠습니까?')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_team_review">
+            <input type="hidden" name="item_id" value="{{ r.id }}">
+            <input type="hidden" name="file_id" value="{{ selected_file.id }}">
+            <button type="submit" class="doc-delete-btn">✕</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- 승인/거절/보류 -->
+      <div class="result-divider" style="margin:14px 0;"></div>
+      <p class="submit-field-label" style="margin-bottom:8px;">최종 의견</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="submit_review">
+        <input type="hidden" name="file_id" value="{{ selected_file.id }}">
+        <div class="vote-action-row">
+          <button type="submit" name="vote" value="approve"
+                  class="btn-vote-action approve {% if my_vote == 'approve' %}selected{% endif %}">
+            ✓ 승인
+          </button>
+          <button type="submit" name="vote" value="hold"
+                  class="btn-vote-action hold {% if my_vote == 'hold' %}selected{% endif %}">
+            — 보류
+          </button>
+          <button type="submit" name="vote" value="reject"
+                  class="btn-vote-action reject {% if my_vote == 'reject' %}selected{% endif %}">
+            ✕ 거절
+          </button>
+        </div>
+      </form>
+
+    </div>
+
+    {% else %}
+    <div class="result-placeholder-box" style="margin-top:40px;">
+      <div class="result-placeholder-icon">&#128269;</div>
+      <p class="result-placeholder-text">자료를 선택하면<br>검증 결과가 표시됩니다</p>
+    </div>
+    {% endif %}
+
+  </aside>
+</div>
+
+<!-- 제출 폼 (center textarea + sidebar inputs 연결) -->
+<form id="submitForm" method="post" enctype="multipart/form-data" style="display:none;">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="submit_text">
+</form>
+
+<script>
+// 리뷰어별 item 인덱스 맵
+const reviewerItems = {
+  {% for group in reviewer_groups %}"{{ group.reviewer.id }}": [{% for entry in group.items %}{{ entry.index }}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}{% endfor %}
+};
+const myReviewIndices = [{% for idx in my_review_indices %}{{ idx }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+function clearAllHighlights() {
+  document.querySelectorAll('.ai-hl').forEach(h => h.classList.remove('hl-visible', 'active'));
+  document.querySelectorAll('.team-hl').forEach(h => h.classList.remove('hl-visible', 'active'));
+  document.querySelectorAll('.ai-review-card').forEach(c => c.classList.remove('active'));
+}
+
+function switchTab(name) {
+  ['ai','team','write'].forEach(t => {
+    document.getElementById('panel-' + t).style.display = t === name ? 'block' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+  });
+  clearAllHighlights();
+  // AI 탭: AI 하이라이트 전체
+  if (name === 'ai') {
+    document.querySelectorAll('.ai-hl').forEach(h => h.classList.add('hl-visible'));
+  }
+  // 내 리뷰 탭: 내 team-hl 하이라이트
+  if (name === 'write') {
+    document.querySelectorAll('.team-hl').forEach(h => {
+      if (myReviewIndices.includes(parseInt(h.dataset.tidx))) h.classList.add('hl-visible');
+    });
+  }
+  // 팀원 탭 전환 시 열린 리뷰어 닫기
+  if (name !== 'team') {
+    document.querySelectorAll('.reviewer-items').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.team-row-arrow').forEach(a => a.textContent = '▶');
+    document.querySelectorAll('.team-review-row').forEach(r => r.classList.remove('open'));
+  }
+}
+
+function openReviewPanel() { switchTab('write'); }
+
+function toggleReviewer(reviewerId) {
+  const items = document.getElementById('reviewer-items-' + reviewerId);
+  const arrow = document.getElementById('reviewer-arrow-' + reviewerId);
+  const row   = document.getElementById('reviewer-row-' + reviewerId);
+  const isOpen = items.style.display !== 'none';
+  // 모두 닫기 + 하이라이트 초기화
+  document.querySelectorAll('.reviewer-items').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.team-row-arrow').forEach(a => a.textContent = '▶');
+  document.querySelectorAll('.team-review-row').forEach(r => r.classList.remove('open'));
+  document.querySelectorAll('.team-hl').forEach(h => h.classList.remove('hl-visible', 'active'));
+  if (!isOpen) {
+    items.style.display = 'block';
+    arrow.textContent = '▼';
+    row.classList.add('open');
+    // 해당 리뷰어의 team-hl 만 표시
+    const indices = reviewerItems[String(reviewerId)] || [];
+    document.querySelectorAll('.team-hl').forEach(h => {
+      if (indices.includes(parseInt(h.dataset.tidx))) h.classList.add('hl-visible');
+    });
+  }
+}
+
+function focusTeamHighlight(idx) {
+  document.querySelectorAll('.team-hl').forEach(h => h.classList.remove('active'));
+  const hl = document.querySelector('.team-hl[data-tidx="' + idx + '"]');
+  if (hl) { hl.classList.add('active'); hl.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+
+function focusCard(idx) {
+  document.querySelectorAll('.ai-review-card:not(.team-review-item-card)').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.ai-hl').forEach(h => h.classList.remove('active'));
+  const card = document.getElementById('review-card-' + idx);
+  const hl   = document.querySelector('.ai-hl[data-idx="' + idx + '"]');
+  if (card) { card.classList.add('active'); card.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  if (hl) hl.classList.add('active');
+}
+
+function focusHighlight(idx) {
+  document.querySelectorAll('.ai-hl').forEach(h => h.classList.remove('active'));
+  const hl = document.querySelector('.ai-hl[data-idx="' + idx + '"]');
+  if (hl) { hl.classList.add('active'); hl.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+
+// 드래그 → 리뷰 남기기 탭 자동 채움
+document.addEventListener('mouseup', function(e) {
+  if (e.target.closest('#panel-write')) return;
+  const sel  = window.getSelection();
+  const text = sel.toString().trim();
+  const content = document.getElementById('doc-content');
+  if (text.length > 2 && content && content.contains(sel.anchorNode)) {
+    document.getElementById('panel-hl-text').value = text;
+    switchTab('write');
+  }
+});
+
+// 페이지 로드 시 AI 탭 기본 활성화
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.ai-hl').forEach(h => h.classList.add('hl-visible'));
+});
+
+function goToWriteMode() {
+  if (window.location.search.includes('doc=')) {
+    window.location.href = '/review/';
+  } else {
+    document.querySelector('.center-textarea')?.focus();
+  }
+}
+
+function updateFileLabel(input) {
+  document.getElementById('fileLabel').textContent =
+    input.files[0] ? input.files[0].name : '파일 선택';
+}
+</script>
+{% endblock %}
